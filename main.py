@@ -3,11 +3,12 @@ from tkinter import *
 from tkinter import Tk #tk is a class from tkinter module, represents the main app window
 
 from geopy.geocoders import Nominatim
-from timezonefinder import timezonefinder
+from timezonefinder import TimezoneFinder
 from datetime import *
 import pytz
 from PIL import Image, ImageTk
 
+import requests
 
 root=Tk()
 root.title("Weather App")
@@ -18,10 +19,11 @@ root.resizable(False,False)
 def getweather():
     city=textfield.get()
 
-    geolocator = Nominatim(user_agent="geoapiExercises")
+    geolocator = Nominatim(user_agent="my_weather_app_2025_yourname")
+
     location = geolocator.geocode(city)
 
-    obj = timezonefinder()
+    obj = TimezoneFinder()
 
     result = obj.timezone_at(lng=location.longitude, lat=location.latitude)
 
@@ -35,13 +37,19 @@ def getweather():
     clock.config(text=current_time)
 
     #weather
-    api = "https://api.openweathermap.org/data/3.0/onecall?lat"=+str(location.latitude)+"&lon="+str(location.longitude)+"&units=metric&exclude=hourly&appid={API key}"
+    api =  f"https://api.openweathermap.org/data/2.5/onecall?lat={location.latitude}&lon={location.longitude}&units=metric&exclude=hourly&appid=696cdbab64ba5147f64c2302c154e86a"
+
 
     json_data = requests.get(api).json()
-
+    print(json_data)
     #current
     temp = json_data['current']['temp']
-    print(temp)
+    temperature_label = Label(root, font=('Helvetica', 11), fg="white", bg="#203243")
+    temperature_label.place(x=150, y=120)
+
+    temperature_label.config(text=f"{temp} °C")
+
+
 
 
 
