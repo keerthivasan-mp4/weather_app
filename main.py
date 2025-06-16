@@ -1,121 +1,140 @@
 #Tkinter is standard GUI library for python
-from tkinter import * 
-from tkinter import Tk #tk is a class from tkinter module, represents the main app window
-
+from tkinter import *
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 from datetime import *
 import pytz
 from PIL import Image, ImageTk
-
 import requests
+import os
+from dotenv import load_dotenv
 
-root=Tk()
+# Load API key from .env file
+load_dotenv()
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
+
+root = Tk()
 root.title("Weather App")
 root.geometry("890x470+300+300")
-root.configure(bg="#57adff")
-root.resizable(False,False)
+root.resizable(False, False)
+root.configure(bg="#2fa3f0")
 
+# Weather icon label (global reference)
+weather_icon_label = Label(root, bg="#2fa3f0")
+weather_icon_label.place(x=750, y=100)
+
+
+##--- Weather func() ---
 def getweather():
-    city=textfield.get()
-
-    geolocator = Nominatim(user_agent="my_weather_app_2025_yourname")
-
+    city = textfield.get()
+    geolocator = Nominatim(user_agent="my_weather_app_2025")
     location = geolocator.geocode(city)
 
     obj = TimezoneFinder()
-
     result = obj.timezone_at(lng=location.longitude, lat=location.latitude)
 
-    timezone.config(text=result) 
+    timezone.config(text=result)
+    long_lat.config(text=f"{round(location.latitude, 4)}°N, {round(location.longitude, 4)}°E")
 
-    long_lat.config(text=f"{round(location.latitude,4)}°N,{round(location.longitude,4)}°E")
+    home = pytz.timezone(result)
+    local_time = datetime.now(home)
+    clock.config(text=local_time.strftime("%I:%M %p"))
 
-    home=pytz.timezone(result)
-    local_time=datetime.now(home)
-    current_time=local_time.strftime("%I:%M %p")
-    clock.config(text=current_time)
+    if not API_KEY:
+        print("API key not found in environment.")
+        return
 
-    #weather
-    api =  f"https://api.openweathermap.org/data/2.5/onecall?lat={location.latitude}&lon={location.longitude}&units=metric&exclude=hourly&appid=696cdbab64ba5147f64c2302c154e86a"
+    # Fetch weather data
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={location.latitude}&lon={location.longitude}&units=metric&appid={API_KEY}"
+    response = requests.get(url)
+    json_data = response.json()
+
+    if json_data.get("cod") != 200:
+        print("API Error:", json_data.get("message"))
+        return
+
+    # Extract data
+    temp = json_data['main']['temp']
+    humidity = json_data['main']['humidity']
+    pressure = json_data['main']['pressure']
+    wind = json_data['wind']['speed']
+    description = json_data['weather'][0]['main'].lower()
+
+    # Update info labels
+    temperature_value.config(text=f"{temp} °C")
+    humidity_value.config(text=f"{humidity}%")
+    wind_value.config(text=f"{round(wind * 3.6, 2)} km/h")
+    pressure_value.config(text=f"{pressure} hPa")
+
+    # Set background based on weather
+    weather_colors = {
+        "clear": ("#ea893a", "white"),
+        "rain": ("#4a708b", "white"),
+        "clouds": ("#778899", "white"),
+        "snow": ("#e0f7fa", "black"),
+        "thunderstorm": ("#2f4f4f", "white"),
+        "mist": ("#708090", "white"),
+    }
+
+    bg_color, fg_color = weather_colors.get(description, ("#ea893a", "white"))
+    root.configure(bg=bg_color)
+
+    for widget in [clock, timezone, long_lat, temperature_value, humidity_value, wind_value, pressure_value]:
+        widget.config(bg=bg_color, fg=fg_color)
+
+    # Update icon
+    icon_files = {
+        "clear": "images/clear.png",
+        "rain": "images/rain.png",
+        "clouds": "images/cloud.png",
+        "snow": "images/snow.png",
+        "thunderstorm": "images/thunderstorm.png",
+        "mist": "images/mist.png"
+    }
+
+    icon_path = icon_files.get(description)
+
+    if icon_path and os.path.exists(icon_path):
+        img = Image.open(icon_path).resize((100, 100), Image.LANCZOS)
+        icon = ImageTk.PhotoImage(img)
+        weather_icon_label.config(image=icon)
+        weather_icon_label.image = icon
+    else:
+        weather_icon_label.config(image='')
 
 
-    json_data = requests.get(api).json()
-    print(json_data)
-    #current
-    temp = json_data['current']['temp']
-    temperature_label = Label(root, font=('Helvetica', 11), fg="white", bg="#203243")
-    temperature_label.place(x=150, y=120)
+# --- UI Widgets ---
+clock = Label(root, font=("Helvetica", 30, 'bold'), fg="white", bg="#ea893a")
+clock.place(x=30, y=20)
 
-    temperature_label.config(text=f"{temp} °C")
+timezone = Label(root, font=("Helvetica", 20), fg="white", bg="#ea893a")
+timezone.place(x=700, y=20)
 
+long_lat = Label(root, font=("Helvetica", 10), fg="white", bg="#ea893a")
+long_lat.place(x=700, y=50)
 
-
-
-
-#icon
-image_icon=PhotoImage(file="Images-20250513T121650Z-1-001/Images/logo.png")
-root.iconphoto(False, image_icon)
-
-Round_box = PhotoImage(file="Images-20250513T121650Z-1-001/Images/Rounded Rectangle 1.png")
-Label(root,image=Round_box, bg="#57adff").place(x=30,y=110)
-
-#label
-label1 = Label(root,text="Temperature", font=('Helvetica',11), fg="white", bg="#203243")
-label1.place(x=45,y=120)
-
-label2 = Label(root,text="Humidity", font=('Helvetica',11), fg="white", bg="#203243")
-label2.place(x=45,y=140)
-
-label3 = Label(root,text="wind speed", font=('Helvetica',11), fg="white", bg="#203243")
-label3.place(x=45,y=160)
-
-label4 = Label(root,text="Air Quality", font=('Helvetica',11), fg="white", bg="#203243")
-label4.place(x=45,y=180)
-
-#search box
-search_image = PhotoImage(file="Images-20250513T121650Z-1-001/Images/Rounded Rectangle 3.png")
-myimage= Label(image = search_image,bg="#57adff")
-myimage.place(x=270,y=120)
-
-weat_image = PhotoImage(file="Images-20250513T121650Z-1-001/Images/Layer 7.png")
-weatherimage = Label(root, image=weat_image,bg="#203243")
-weatherimage.place(x=290,y=127)
-
-textfield = Entry(root, justify='center', width=15, font=('poppins',25,'bold'), bg="#203243",border=0,fg="white")
-textfield.place(x=370,y=130)
+textfield = Entry(root, justify='center', width=15, font=('poppins', 25, 'bold'), bg="#55A5F6", border=0, fg="white")
+textfield.place(x=300, y=130)
 textfield.focus()
 
-search_icon = PhotoImage(file="Images-20250513T121650Z-1-001/Images/Layer 6.png")
-myimage_icon = Button(image=search_icon, borderwidth=0,cursor="hand2", bg="#203243", command=getweather)
-myimage_icon.place(x=648,y=125)
+search_button = Button(root, text="Search", font=("Helvetica", 12), bg="#2fa3f0", fg="white", command=getweather)
+search_button.place(x=580, y=135)
 
-#bottom box
-frame=Frame(root,width=900,height=180,bg="#212120")
-frame.pack(side=BOTTOM)
+Label(root, text="Temperature:", font=('Helvetica', 11), fg="white", bg="#2fa3f0").place(x=45, y=120)
+Label(root, text="Humidity:", font=('Helvetica', 11), fg="white", bg="#2fa3f0").place(x=45, y=150)
+Label(root, text="Wind Speed:", font=('Helvetica', 11), fg="white", bg="#2fa3f0").place(x=45, y=180)
+Label(root, text="Pressure:", font=('Helvetica', 11), fg="white", bg="#2fa3f0").place(x=45, y=210)
 
-#bottom boxes
-firstbox = PhotoImage(file="Images-20250513T121650Z-1-001/Images/Rounded Rectangle 2.png")
-secondbox = PhotoImage(file="Images-20250513T121650Z-1-001/Images/Rounded Rectangle 2 copy.png")
-Label(frame,image=firstbox,bg="#212120").place(x=30,y=20)
+temperature_value = Label(root, font=('Helvetica', 11), fg="white", bg="#2fa3f0")
+temperature_value.place(x=160, y=120)
 
-Label(frame, image=secondbox,bg="#212120").place(x=300,y=30)
-Label(frame, image=secondbox,bg="#212120").place(x=400,y=30)
-Label(frame, image=secondbox,bg="#212120").place(x=500,y=30)
-Label(frame, image=secondbox,bg="#212120").place(x=600,y=30)
-Label(frame, image=secondbox,bg="#212120").place(x=700,y=30)
-Label(frame, image=secondbox,bg="#212120").place(x=800,y=30)
+humidity_value = Label(root, font=('Helvetica', 11), fg="white", bg="#2fa3f0")
+humidity_value.place(x=160, y=150)
 
-#clock
-clock = Label(root, font=("Helvetica",30  ,'bold'),fg="white", bg="#57adff")
-clock.place(x=30,y=20)
+wind_value = Label(root, font=('Helvetica', 11), fg="white", bg="#2fa3f0")
+wind_value.place(x=160, y=180)
 
-#timezone
-timezone=Label(root,font=("Helvetica",20), fg="white", bg="#57adff")
-timezone.place(x=700,y=20)
-
-long_lat = Label(root, font=("Helvetica",10), fg="white", bg="#57adff")
-long_lat.place(x=700,y=50)
-
+pressure_value = Label(root, font=('Helvetica', 11), fg="white", bg="#2fa3f0")
+pressure_value.place(x=160, y=210)
 
 root.mainloop()
