@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 #Tkinter is standard GUI library for python
 from tkinter import *
 from geopy.geocoders import Nominatim
@@ -164,7 +164,7 @@ pressure_value = Label(root, font=('Helvetica', 11), fg="white", bg="#2fa3f0")
 pressure_value.place(x=160, y=210)
 
 root.mainloop()
-=======
+
 #Tkinter is standard GUI library for python
 from tkinter import *
 from geopy.geocoders import Nominatim
@@ -305,4 +305,4 @@ pressure_value = Label(root, font=('Helvetica', 11), fg="white", bg="#2fa3f0")
 pressure_value.place(x=160, y=210)
 
 root.mainloop()
->>>>>>> 2c9751c532f9156166e02db3f0c5d23cc54c1fa6
+
